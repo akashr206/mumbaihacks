@@ -16,6 +16,7 @@
     "drizzle-orm": "^0.44.7",
     "express": "^5.1.0",
     "ioredis": "^5.8.2",
+    "socket.io": "^4.8.1",
     "socketio": "^1.0.0",
     "uuid": "^13.0.0"
   }
