@@ -5,6 +5,7 @@ import http from "http";
 import { Server } from "socket.io";
 import { nanoid } from "nanoid";
 import Redis from "ioredis";
+import staffRoutes from "./routes/staffRoute.js";
 dotenv.config();
 
 const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
@@ -24,6 +25,7 @@ export const io = new Server(server, {
 app.use(express.json());
 app.use(cors({ origin: "http://localhost:3000" }));
 
+app.use("/api/staff", staffRoutes);
 
 io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
