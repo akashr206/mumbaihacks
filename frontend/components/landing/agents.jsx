@@ -3,7 +3,7 @@
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Users, Activity, Package, Network } from 'lucide-react';
 import { useRef } from 'react';
-import { TiltCard } from '@/components/ui/tilt-card';
+import { TiltCard } from '../ui/tilt-card';
 
 const agents = [
   {
