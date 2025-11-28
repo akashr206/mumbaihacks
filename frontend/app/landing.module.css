@@ -1,0 +1,71 @@
+/* Landing Page Theme Scoped */
+.landingWrapper {
+  /* Light Mode Theme (Teal/Indigo) */
+  --landing-background: oklch(0.98 0.01 200); /* Very light cool gray/blue */
+  --landing-foreground: oklch(0.2 0.02 240); /* Dark blue-gray */
+  
+  --landing-primary: oklch(0.55 0.15 240); /* Vibrant Indigo */
+  --landing-primary-foreground: oklch(0.98 0 0); /* White */
+  
+  --landing-secondary: oklch(0.95 0.03 190); /* Light Teal/Cyan tint */
+  --landing-secondary-foreground: oklch(0.3 0.05 240); /* Dark Indigo */
+  
+  --landing-accent: oklch(0.92 0.04 180); /* Soft Teal */
+  --landing-accent-foreground: oklch(0.25 0.05 240);
+  
+  --landing-muted: oklch(0.96 0.01 240);
+  --landing-muted-foreground: oklch(0.5 0.05 240);
+  
+  --landing-border: oklch(0.9 0.02 240);
+  --landing-ring: oklch(0.55 0.15 240);
+
+  /* Apply these to the standard Tailwind variables within this scope */
+  --background: var(--landing-background);
+  --foreground: var(--landing-foreground);
+  --primary: var(--landing-primary);
+  --primary-foreground: var(--landing-primary-foreground);
+  --secondary: var(--landing-secondary);
+  --secondary-foreground: var(--landing-secondary-foreground);
+  --accent: var(--landing-accent);
+  --accent-foreground: var(--landing-accent-foreground);
+  --muted: var(--landing-muted);
+  --muted-foreground: var(--landing-muted-foreground);
+  --border: var(--landing-border);
+  --ring: var(--landing-ring);
+}
+
+/* Dark Mode Overrides */
+:global(.dark) .landingWrapper {
+  --landing-background: oklch(0.12 0.03 260); /* Deep Navy/Purple */
+  --landing-foreground: oklch(0.98 0.01 240); /* White/Light Gray */
+  
+  --landing-primary: oklch(0.65 0.18 240); /* Bright Indigo/Blue */
+  --landing-primary-foreground: oklch(0.98 0 0);
+  
+  --landing-secondary: oklch(0.2 0.05 260); /* Darker Navy */
+  --landing-secondary-foreground: oklch(0.9 0.02 240);
+  
+  --landing-accent: oklch(0.25 0.08 260); /* Deep Indigo Accent */
+  --landing-accent-foreground: oklch(0.95 0.02 240);
+  
+  --landing-muted: oklch(0.2 0.03 260);
+  --landing-muted-foreground: oklch(0.7 0.05 240);
+  
+  --landing-border: oklch(0.25 0.05 260);
+  --landing-ring: oklch(0.65 0.18 240);
+}
+
+.landingWrapper {
+  background-color: var(--background);
+  color: var(--foreground);
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  /* Add a subtle gradient mesh or pattern */
+  background-image: 
+    radial-gradient(at 0% 0%, oklch(var(--primary) / 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, oklch(var(--accent) / 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, oklch(var(--secondary) / 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, oklch(var(--primary) / 0.05) 0px, transparent 50%);
+  background-attachment: fixed;
+}
