@@ -7,9 +7,9 @@ import { API_URL } from "@/lib/utils2";
 export default function StaffMetrics() {
     const [stats, setStats] = useState({
         total: 0,
-        onDuty: 0,
-        offDuty: 0,
-        onBreak: 0,
+        doctors: 0,
+        nurses: 0,
+        roles: {},
     });
 
     useEffect(() => {
@@ -27,6 +27,9 @@ export default function StaffMetrics() {
         fetchStats();
     }, []);
 
+    // Get top doctor role
+    const topRole = Object.entries(stats.roles).sort((a, b) => b[1] - a[1])[0];
+
     const metrics = [
         {
             icon: Users,
@@ -39,26 +42,26 @@ export default function StaffMetrics() {
         },
         {
             icon: UserCheck,
-            title: "On Duty",
-            value: stats.onDuty,
+            title: "Doctors",
+            value: stats.doctors,
+            bgColor:
+                "bg-blue-100 dark:bg-blue-950 border-1 border-blue-700 dark:border-blue-700",
+            textColor: "text-blue-600 dark:text-blue-400",
+            iconBgColor: "bg-blue-100 dark:bg-blue-900",
+        },
+        {
+            icon: UserCheck,
+            title: "Nurses",
+            value: stats.nurses,
             bgColor:
                 "bg-green-100 dark:bg-green-950 border-1 border-green-700 dark:border-green-700",
             textColor: "text-green-600 dark:text-green-400",
             iconBgColor: "bg-green-100 dark:bg-green-900",
         },
         {
-            icon: UserX,
-            title: "Off Duty",
-            value: stats.offDuty,
-            bgColor:
-                "bg-zinc-100 dark:bg-zinc-950 border-1 border-zinc-400 dark:border-zinc-700",
-            textColor: "text-zinc-900 dark:text-zinc-100",
-            iconBgColor: "bg-zinc-200 dark:bg-zinc-700",
-        },
-        {
-            icon: Coffee,
-            title: "On Break",
-            value: stats.onBreak,
+            icon: Users,
+            title: topRole ? `${topRole[0]}s` : "Specialists",
+            value: topRole ? topRole[1] : 0,
             bgColor:
                 "bg-orange-100 dark:bg-orange-950 border-1 border-orange-700 dark:border-orange-700",
             textColor: "text-orange-600 dark:text-orange-400",
@@ -85,7 +88,7 @@ export default function StaffMetrics() {
                             </p>
                         </div>
                         <div
-                            className={`${metric.iconBgColor} rounded-lg p-2 sm:p-3 flex-shrink-0`}
+                            className={`${metric.iconBgColor} rounded-lg p-2 sm:p-3 shrink-0`}
                         >
                             <metric.icon className="h-5 w-5 sm:h-6 sm:w-6 text-zinc-700 dark:text-zinc-300" />
                         </div>

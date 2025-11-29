@@ -24,11 +24,6 @@ export default function StaffManagementPage() {
             {/* Metrics Section */}
             <StaffMetrics />
 
-            {/* Staff Directory Section */}
-            <div>
-                <StaffList />
-            </div>
-
             {/* Ward Staff Distribution Section */}
             <div>
                 <WardStaffTable />

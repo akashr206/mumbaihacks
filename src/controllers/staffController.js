@@ -1,5 +1,5 @@
 import { db } from "../utils/db.js";
-import { doctors, wards } from "../../schema.js";
+import { doctors, wards, hospital } from "../../schema.js";
 import { eq } from "drizzle-orm";
 
 export const getAllStaff = async (req, res) => {
@@ -72,17 +72,24 @@ export const deleteStaff = async (req, res) => {
 
 export const getStaffStats = async (req, res) => {
     try {
-        const allStaff = await db.select().from(doctors);
-        const total = allStaff.length;
-        const onDuty = allStaff.filter((s) => s.status === "on-duty").length;
-        const offDuty = allStaff.filter((s) => s.status === "off-duty").length;
-        const onBreak = allStaff.filter((s) => s.status === "break").length;
+        const allDoctors = await db.select().from(doctors);
+        const hospitalData = await db.select().from(hospital);
+
+        const totalDoctors = allDoctors.length;
+        const totalNurses = hospitalData[0]?.totalNurses || 0;
+        const totalStaff = totalDoctors + totalNurses;
+
+        // Group doctors by role
+        const roles = {};
+        allDoctors.forEach((d) => {
+            roles[d.role] = (roles[d.role] || 0) + 1;
+        });
 
         res.json({
-            total,
-            onDuty,
-            offDuty,
-            onBreak,
+            total: totalStaff,
+            doctors: totalDoctors,
+            nurses: totalNurses,
+            roles: roles,
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -95,15 +102,19 @@ export const getWardStaffDistribution = async (req, res) => {
         const doctorsData = await db.select().from(doctors);
 
         const result = wardsData.map((ward) => {
-            const staffInWard = doctorsData.filter((d) => d.wardId === ward.id);
-            const roles = {};
-            staffInWard.forEach((s) => {
-                roles[s.role] = (roles[s.role] || 0) + 1;
+            const doctorsInWard = doctorsData.filter(
+                (d) => d.wardId === ward.id
+            );
+            const doctorRoles = {};
+            doctorsInWard.forEach((d) => {
+                doctorRoles[d.role] = (doctorRoles[d.role] || 0) + 1;
             });
+
             return {
                 ...ward,
-                staffRoles: roles,
-                totalStaff: staffInWard.length,
+                doctorsCount: doctorsInWard.length,
+                nursesCount: ward.nurses, // from wards table
+                doctorRoles: doctorRoles,
             };
         });
         res.json(result);

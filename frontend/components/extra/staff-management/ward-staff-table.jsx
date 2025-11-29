@@ -54,23 +54,25 @@ export default function WardStaffTable() {
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead>Ward ID</TableHead>
                             <TableHead>Ward Name</TableHead>
-                            <TableHead>Total Staff</TableHead>
-                            <TableHead>Staff Roles</TableHead>
-                            <TableHead>Capacity</TableHead>
-                            <TableHead>Occupied</TableHead>
+                            <TableHead>Doctors</TableHead>
+                            <TableHead>Nurses</TableHead>
+                            <TableHead>Doctor Roles</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {wards.map((ward) => (
                             <TableRow key={ward.id}>
+                                <TableCell>{ward.id}</TableCell>
                                 <TableCell className="font-medium">
                                     {ward.name}
                                 </TableCell>
-                                <TableCell>{ward.totalStaff}</TableCell>
+                                <TableCell>{ward.doctorsCount}</TableCell>
+                                <TableCell>{ward.nursesCount}</TableCell>
                                 <TableCell>
-                                    <div className="flex flex-wrap gap-2">
-                                        {Object.entries(ward.staffRoles).map(
+                                    <div className="flex max-w-xl flex-wrap gap-2">
+                                        {Object.entries(ward.doctorRoles).map(
                                             ([role, count]) => (
                                                 <Badge
                                                     key={role}
@@ -80,16 +82,14 @@ export default function WardStaffTable() {
                                                 </Badge>
                                             )
                                         )}
-                                        {Object.keys(ward.staffRoles).length ===
-                                            0 && (
+                                        {Object.keys(ward.doctorRoles)
+                                            .length === 0 && (
                                             <span className="text-muted-foreground text-sm">
-                                                No staff assigned
+                                                -
                                             </span>
                                         )}
                                     </div>
                                 </TableCell>
-                                <TableCell>{ward.capacity}</TableCell>
-                                <TableCell>{ward.occupied}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

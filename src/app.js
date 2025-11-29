@@ -3,7 +3,6 @@ import dotenv from "dotenv";
 import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
-import { nanoid } from "nanoid";
 import Redis from "ioredis";
 import inventoryRoutes from "./routes/inventoryRoutes.js";
 import staffRoutes from "./routes/staffRoute.js";
