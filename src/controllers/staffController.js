@@ -1,5 +1,5 @@
 import { db } from "../utils/db.js";
-import { doctors } from "../../schema.js";
+import { doctors, wards } from "../../schema.js";
 import { eq } from "drizzle-orm";
 
 export const getAllStaff = async (req, res) => {
@@ -65,6 +65,48 @@ export const deleteStaff = async (req, res) => {
         const { id } = req.params;
         await db.delete(doctors).where(eq(doctors.id, id));
         res.json({ message: "Staff deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getStaffStats = async (req, res) => {
+    try {
+        const allStaff = await db.select().from(doctors);
+        const total = allStaff.length;
+        const onDuty = allStaff.filter((s) => s.status === "on-duty").length;
+        const offDuty = allStaff.filter((s) => s.status === "off-duty").length;
+        const onBreak = allStaff.filter((s) => s.status === "break").length;
+
+        res.json({
+            total,
+            onDuty,
+            offDuty,
+            onBreak,
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const getWardStaffDistribution = async (req, res) => {
+    try {
+        const wardsData = await db.select().from(wards);
+        const doctorsData = await db.select().from(doctors);
+
+        const result = wardsData.map((ward) => {
+            const staffInWard = doctorsData.filter((d) => d.wardId === ward.id);
+            const roles = {};
+            staffInWard.forEach((s) => {
+                roles[s.role] = (roles[s.role] || 0) + 1;
+            });
+            return {
+                ...ward,
+                staffRoles: roles,
+                totalStaff: staffInWard.length,
+            };
+        });
+        res.json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

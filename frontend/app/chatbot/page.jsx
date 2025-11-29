@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { API_URL } from "@/lib/utils2";
 
 export default function ChatbotPage() {
     const [messages, setMessages] = useState([
@@ -40,20 +41,61 @@ export default function ChatbotPage() {
         setInput("");
         setIsLoading(true);
 
-        setTimeout(() => {
-            const aiMessage = {
-                id: Date.now() + 1,
-                role: "assistant",
-                content:
-                    "I'm currently in demo mode. I can help you navigate the dashboard, manage staff, or check inventory status. What would you like to do?",
-            };
-            setMessages((prev) => [...prev, aiMessage]);
+        const aiMessageId = Date.now() + 1;
+        const aiMessage = {
+            id: aiMessageId,
+            role: "assistant",
+            content: "",
+        };
+        setMessages((prev) => [...prev, aiMessage]);
+
+        try {
+            const response = await fetch(`${API_URL}/api/chat`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ message: userMessage.content }),
+            });
+
+            if (!response.ok) throw new Error("Failed to fetch response");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.id === aiMessageId
+                            ? { ...msg, content: msg.content + chunk }
+                            : msg
+                    )
+                );
+            }
+        } catch (error) {
+            console.error("Chat error:", error);
+            setMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === aiMessageId
+                        ? {
+                              ...msg,
+                              content:
+                                  "Sorry, I encountered an error. Please try again.",
+                          }
+                        : msg
+                )
+            );
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
     };
 
     return (
-        <div className="flex relative h-[100vh] flex-col bg-gray-50 dark:bg-zinc-950">
+        <div className="flex relative h-[calc(100vh-80px)] flex-col bg-gray-50 dark:bg-zinc-950">
             <ScrollArea className="flex-1 p-4 ">
                 <div className="mx-auto max-w-3xl space-y-6 pb-15 pt-4">
                     {messages.map((message) => (
@@ -66,7 +108,7 @@ export default function ChatbotPage() {
                                     : "justify-start"
                             )}
                         >
-                            {message.role === "assistant" && (
+                            {message.role === "assistant" && !isLoading && (
                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                                     <Bot className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
                                 </div>

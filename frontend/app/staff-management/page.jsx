@@ -2,6 +2,7 @@
 
 import StaffMetrics from "@/components/extra/staff-management/staff-metrics";
 import StaffList from "@/components/extra/staff-management/staff-list";
+import WardStaffTable from "@/components/extra/staff-management/ward-staff-table";
 import AddStaffDialog from "@/components/extra/staff-management/add-staff-dialog";
 
 export default function StaffManagementPage() {
@@ -26,6 +27,11 @@ export default function StaffManagementPage() {
             {/* Staff Directory Section */}
             <div>
                 <StaffList />
+            </div>
+
+            {/* Ward Staff Distribution Section */}
+            <div>
+                <WardStaffTable />
             </div>
         </div>
     );

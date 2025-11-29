@@ -7,15 +7,18 @@ import { nanoid } from "nanoid";
 import Redis from "ioredis";
 import inventoryRoutes from "./routes/inventoryRoutes.js";
 import staffRoutes from "./routes/staffRoute.js";
+import chatRoutes from "./routes/chatRoutes.js";
 import { db } from "./utils/db.js";
-import { predictions } from "../schema.js";
-import { desc, eq } from "drizzle-orm";
+import { predictions, patients, hospital, wards } from "../schema.js";
+import { desc, eq, sql } from "drizzle-orm";
+import { triggerBatch } from "./utils/batchRunner.js";
+import { startScheduler, getSchedulerStatus } from "./utils/scheduler.js";
 dotenv.config();
 
 const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 
 const app = express();
-const port = process.env.PORT || 8000;
+const port = process.env.PORT || 8000; 
 const r = new Redis(redisUrl);
 const server = http.createServer(app);
 
@@ -31,14 +34,24 @@ app.use(cors({ origin: "http://localhost:3000" }));
 
 app.use("/api/staff", staffRoutes);
 app.use("/api/inventory", inventoryRoutes);
+app.use("/api/chat", chatRoutes);
 
 io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
+
+    // Send immediate status update
+    socket.emit("scheduler:status", getSchedulerStatus());
 
     socket.on("disconnect", () => {
         console.log("Client disconnected:", socket.id);
     });
 });
+
+setInterval(() => {
+    io.emit("scheduler:status", getSchedulerStatus());
+}, 1000);
+
+startScheduler(io, r);
 
 app.get("/api/predictions", async (req, res) => {
     try {
@@ -72,90 +85,67 @@ app.get("/api/predictions/:id", async (req, res) => {
     }
 });
 
-app.post("/run_batch", async (req, res) => {
-    const batchId = nanoid(8);
-    console.log("Running batch ID:", batchId);
+app.get("/api/dashboard/stats", async (req, res) => {
+    try {
+        const patientCountResult = await db.select().from(wards);
+        let totalPatients = 0;
 
-    res.json({
-        batchId,
-        message: "Batch started",
-    });
+        patientCountResult.forEach((e) => {
+            totalPatients += e.occupied;
+        });
 
-    const task = {
-        id: nanoid(12),
-        type: "monitor",
-        createdAt: Date.now(),
-    };
-
-    await r.xadd("tasks:stream", "*", "value", JSON.stringify(task));
-
-    async function tailResults() {
-        const STREAM = "results:stream-" + batchId;
-
-        await r.set("current-stream", STREAM);
-
-        try {
-            await r.xgroup("CREATE", STREAM, batchId, "$", "MKSTREAM");
-        } catch (e) {
-            if (!String(e).includes("BUSYGROUP")) {
-                console.error("Group creation error:", e);
-            }
+        const hospitalStats = await db.select().from(hospital).limit(1);
+        let staffOnDuty = 0;
+        if (hospitalStats.length > 0) {
+            staffOnDuty =
+                hospitalStats[0].totalDoctors + hospitalStats[0].totalNurses;
         }
 
-        while (true) {
-            try {
-                const reply = await r.xreadgroup(
-                    "GROUP",
-                    batchId,
-                    "manager",
-                    "COUNT",
-                    5,
-                    "BLOCK",
-                    5000,
-                    "STREAMS",
-                    STREAM,
-                    ">"
-                );
+        const criticalCountResult = await db
+            .select({ count: sql`count(*)` })
+            .from(patients)
+            .where(eq(patients.stage, "Critical"));
+        const criticalCases = criticalCountResult[0].count;
 
-                if (!reply) continue;
-
-                for (const [, messages] of reply) {
-                    for (const [id, fields] of messages) {
-                        const obj = {};
-                        for (let i = 0; i < fields.length; i += 2) {
-                            obj[fields[i]] = fields[i + 1];
-                        }
-
-                        const payload = JSON.parse(obj.value);
-
-                        await r.xack(STREAM, batchId, id);
-
-                        io.emit("batch:update", {
-                            batchId,
-                            payload,
-                        });
-
-                        if (payload.id === "exit") {
-                            io.emit("batch:completed", {
-                                batchId,
-                                message: "Batch processing completed",
-                                finalPlan: payload.finalPlan,
-                            });
-
-                            await r.del(STREAM);
-                            console.log("Batch processing completed", batchId);
-
-                            return;
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error("xreadgroup error:", err);
-            }
-        }
+        res.json({
+            totalPatients,
+            staffOnDuty,
+            criticalCases,
+            avgWaitTime: "29m",
+        });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "Failed to fetch dashboard stats" });
     }
+});
 
-    tailResults();
+app.get("/api/dashboard/wards", async (req, res) => {
+    try {
+        const allWards = await db.select().from(wards);
+        res.json(allWards);
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "Failed to fetch wards" });
+    }
+});
+
+app.post("/run_batch", async (req, res) => {
+    try {
+        const { batchId, completionPromise } = await triggerBatch(io, r);
+
+        res.json({
+            batchId,
+            message: "Batch started",
+        });
+
+        // Fire and forget, but log errors
+        completionPromise.catch((e) =>
+            console.error("Batch execution error:", e)
+        );
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: "Failed to start batch" });
+    }
 });
 
 server.listen(port, () => {

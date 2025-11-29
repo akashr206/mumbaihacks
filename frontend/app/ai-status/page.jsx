@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ResponseDialog } from "@/components/ai-status/ResponseDialog";
@@ -62,6 +63,12 @@ export default function Page() {
         const handleBatchUpdate = (data) => {
             if (!data.batchId) return;
 
+            // Set batchId if it's not set (e.g. triggered by scheduler)
+            setBatchId((prev) => {
+                if (!prev) return data.batchId;
+                return prev;
+            });
+
             const item = data.payload;
             console.log(item);
 
@@ -87,14 +94,56 @@ export default function Page() {
             setIsRunning(false);
         };
 
+        const handleSchedulerStatus = (data) => {
+            setNextRunTime(data.nextRunTime);
+            if (data.isRunning) {
+                setIsRunning(true);
+            }
+        };
+
         socket.on("batch:update", handleBatchUpdate);
         socket.on("batch:completed", handleBatchCompleted);
+        socket.on("scheduler:status", handleSchedulerStatus);
 
         return () => {
             socket.off("batch:update", handleBatchUpdate);
             socket.off("batch:completed", handleBatchCompleted);
+            socket.off("scheduler:status", handleSchedulerStatus);
         };
     }, []);
+
+    // Countdown timer
+    const [timeLeft, setTimeLeft] = useState("");
+    const [nextRunTime, setNextRunTime] = useState(null);
+
+    useEffect(() => {
+        if (!nextRunTime) {
+            setTimeLeft("");
+            return;
+        }
+
+        const updateTimer = () => {
+            const now = Date.now();
+            const diff = nextRunTime - now;
+
+            if (diff <= 0) {
+                setTimeLeft("Running soon...");
+                return;
+            }
+
+            const seconds = Math.ceil(diff / 1000);
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            setTimeLeft(`${m}m ${s}s`);
+        };
+
+        // Initial update
+        updateTimer();
+
+        const interval = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(interval);
+    }, [nextRunTime]);
 
     const startBatch = async () => {
         setError(null);
@@ -281,9 +330,13 @@ export default function Page() {
                                     <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 animate-spin text-blue-500" />
                                 </div>
                                 <h3 className="text-lg sm:text-xl font-medium text-foreground mb-2">
-                                    Next cycle in
+                                    Next cycle in {timeLeft}
                                 </h3>
-                                <p className="text-muted-foreground mb-8 max-w-md text-sm sm:text-base px-4"></p>
+                                <p className="text-muted-foreground mb-8 max-w-md text-sm sm:text-base px-4">
+                                    The AI agents will automatically analyze
+                                    hospital data and generate optimization
+                                    plans.
+                                </p>
                                 <Button
                                     onClick={startBatch}
                                     disabled={isRunning}
@@ -471,11 +524,31 @@ export default function Page() {
 
                     <div className="p-4 sm:p-6 lg:p-8">
                         {loadingDecisions ? (
-                            <div className="flex flex-col items-center justify-center py-12">
-                                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2" />
-                                <p className="text-sm text-muted-foreground">
-                                    Loading predictions...
-                                </p>
+                            <div className="space-y-4">
+                                {[1, 2, 3].map((i) => (
+                                    <div
+                                        key={i}
+                                        className="flex flex-col space-y-3 p-6 border rounded-xl bg-white dark:bg-zinc-900"
+                                    >
+                                        <div className="flex justify-between items-start">
+                                            <div className="space-y-2">
+                                                <Skeleton className="h-5 w-[250px]" />
+                                                <Skeleton className="h-4 w-[200px]" />
+                                            </div>
+                                            <Skeleton className="h-6 w-[100px]" />
+                                        </div>
+                                        <div className="space-y-2 pt-4">
+                                            <Skeleton className="h-4 w-full" />
+                                            <Skeleton className="h-4 w-[90%]" />
+                                        </div>
+                                        <div className="pt-4 flex gap-3">
+                                            <Skeleton className="h-10 w-[100px]" />
+                                            <Skeleton className="h-10 w-[100px]" />
+                                            <div className="flex-1" />
+                                            <Skeleton className="h-10 w-[120px]" />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : (
                             <div className="space-y-2 sm:space-y-3 md:space-y-4">

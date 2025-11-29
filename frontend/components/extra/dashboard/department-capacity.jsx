@@ -1,14 +1,15 @@
 "use client";
 
-export default function DepartmentCapacity() {
-    const departments = [
-        { name: "Emergency", waiting: 7, current: 23, max: 30 },
-        { name: "ICU", waiting: 2, current: 18, max: 20 },
-        { name: "Surgery", waiting: 3, current: 12, max: 15 },
-        { name: "Cardiology", waiting: 1, current: 8, max: 12 },
-        { name: "Orthopedics", waiting: 4, current: 15, max: 20 },
-        { name: "Pediatrics", waiting: 2, current: 9, max: 15 },
-    ];
+export default function DepartmentCapacity({ wards = [] }) {
+    const departments =
+        wards.length > 0
+            ? wards.map((ward) => ({
+                  name: ward.name,
+                  waiting: 0, // Mock waiting for now as it's not in ward table
+                  current: ward.occupied,
+                  max: ward.capacity,
+              }))
+            : [];
 
     const getProgressPercentage = (current, max) => (current / max) * 100;
 
@@ -32,7 +33,7 @@ export default function DepartmentCapacity() {
                                 {dept.waiting} waiting{" "}
                                 <span className="mx-1 sm:mx-2">•</span>{" "}
                                 {dept.current} / {dept.max}
-                            </span>
+                            </span> 
                         </div>
                         <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-1.5 sm:h-2 overflow-hidden">
                             <div

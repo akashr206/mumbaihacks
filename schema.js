@@ -24,7 +24,11 @@ export const patients = pgTable("patients", {
 
 export const doctors = pgTable("doctors", {
     id: serial("id").primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
     role: varchar("role", { length: 100 }).notNull(),
+    department: varchar("department", { length: 100 }),
+    status: varchar("status", { length: 50 }).default("off-duty"),
+    shift: varchar("shift", { length: 50 }),
     wardId: integer("ward_id").references(() => wards.id),
 });
 

@@ -1,13 +1,37 @@
 "use client";
 
 import { Users, UserCheck, UserX, Coffee } from "lucide-react";
+import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/utils2";
 
 export default function StaffMetrics() {
+    const [stats, setStats] = useState({
+        total: 0,
+        onDuty: 0,
+        offDuty: 0,
+        onBreak: 0,
+    });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/staff/stats`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setStats(data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch staff stats", error);
+            }
+        };
+        fetchStats();
+    }, []);
+
     const metrics = [
         {
             icon: Users,
             title: "Total Staff",
-            value: "142",
+            value: stats.total,
             bgColor:
                 "bg-zinc-100 dark:bg-zinc-950 border-1 border-zinc-400 dark:border-zinc-700",
             textColor: "text-zinc-900 dark:text-zinc-100",
@@ -16,7 +40,7 @@ export default function StaffMetrics() {
         {
             icon: UserCheck,
             title: "On Duty",
-            value: "68",
+            value: stats.onDuty,
             bgColor:
                 "bg-green-100 dark:bg-green-950 border-1 border-green-700 dark:border-green-700",
             textColor: "text-green-600 dark:text-green-400",
@@ -25,7 +49,7 @@ export default function StaffMetrics() {
         {
             icon: UserX,
             title: "Off Duty",
-            value: "62",
+            value: stats.offDuty,
             bgColor:
                 "bg-zinc-100 dark:bg-zinc-950 border-1 border-zinc-400 dark:border-zinc-700",
             textColor: "text-zinc-900 dark:text-zinc-100",
@@ -34,7 +58,7 @@ export default function StaffMetrics() {
         {
             icon: Coffee,
             title: "On Break",
-            value: "12",
+            value: stats.onBreak,
             bgColor:
                 "bg-orange-100 dark:bg-orange-950 border-1 border-orange-700 dark:border-orange-700",
             textColor: "text-orange-600 dark:text-orange-400",

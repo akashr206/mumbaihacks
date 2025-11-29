@@ -24,7 +24,9 @@ export default function StatCard({
                         {value}
                     </p>
                     <p className={`mt-2 text-sm font-medium ${changeColor}`}>
-                        {isPositive ? "↑" : "↓"} {Math.abs(change)} vs last week
+                        {isPositive ? "↑" : "↓"}{" "}
+                        {typeof change === "number" ? Math.abs(change) : change}{" "}
+                        vs last week
                     </p>
                 </div>
 
