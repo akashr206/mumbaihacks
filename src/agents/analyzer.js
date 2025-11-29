@@ -99,12 +99,13 @@ sub.on("message", async (channel, message) => {
             taskId: req.taskId,
             agent: AGENT_ID,
             predicted: out.analysis,
+            impact: out.analysis.impact,
             raw: out.raw,
             timestamp: Date.now(),
         };
         console.log(out.analysis);
-        
-        // db.insert(predictions).values(out.analysis);
+
+        await db.insert(predictions).values(out.analysis);
         await pub.publish(
             "broadcast",
             JSON.stringify({ type: "final_plan", payload: finalPlan })

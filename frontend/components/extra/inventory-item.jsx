@@ -32,22 +32,29 @@ export default function InventoryItem({ item }) {
                             {item.name}
                         </h3>
                         <div className="flex flex-wrap gap-2">
-                            {item.statuses?.map((status, idx) => (
-                                <span
-                                    key={idx}
-                                    className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusColor(
-                                        status.toLowerCase()
-                                    )}`}
-                                >
-                                    {status}
-                                </span>
-                            ))}
+                            {(() => {
+                                let status = "adequate";
+                                if (item.current === 0) status = "critical";
+                                else if (item.current <= item.minimum)
+                                    status = "low";
+                                else if (item.current >= item.total)
+                                    status = "full";
+
+                                return (
+                                    <span
+                                        className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusColor(
+                                            status
+                                        )}`}
+                                    >
+                                        {status.charAt(0).toUpperCase() +
+                                            status.slice(1)}
+                                    </span>
+                                );
+                            })()}
                         </div>
                     </div>
                     <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 flex flex-wrap gap-1">
                         <span>{item.category}</span>
-                        <span>•</span>
-                        <span>{item.location}</span>
                         <span>•</span>
                         <span>Last restocked: {item.lastRestocked}</span>
                     </p>
@@ -63,10 +70,20 @@ export default function InventoryItem({ item }) {
                 </p>
                 <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
                     <div
-                        className={`h-full ${getProgressColor(
-                            item.statuses[0].toLowerCase()
-                        )} rounded-full transition-all`}
-                        style={{ width: `${Math.floor((item.current/item.total)*100)}%` }}
+                        className={`h-full ${(() => {
+                            let status = "adequate";
+                            if (item.current === 0) status = "critical";
+                            else if (item.current <= item.minimum)
+                                status = "low";
+                            else if (item.current >= item.total)
+                                status = "full";
+                            return getProgressColor(status);
+                        })()} rounded-full transition-all`}
+                        style={{
+                            width: `${Math.floor(
+                                (item.current / item.total) * 100
+                            )}%`,
+                        }}
                     />
                 </div>
             </div>
@@ -80,7 +97,8 @@ export default function InventoryItem({ item }) {
                         {item.current} / {item.total} {item.unit}
                     </p>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                        {Math.floor((item.current/item.total)*100)}% capacity
+                        {Math.floor((item.current / item.total) * 100)}%
+                        capacity
                     </p>
                 </div>
             </div>

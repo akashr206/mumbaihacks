@@ -29,7 +29,7 @@ export default function LayoutContent({ children }) {
                 `}
             >
                 <Navbar />
-                <main className=" p-6">{children}</main>
+                <main>{children}</main>
             </motion.div>
         </div>
     );

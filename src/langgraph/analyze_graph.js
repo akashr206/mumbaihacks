@@ -8,7 +8,8 @@ export async function predictLoadNode(state) {
         `1) short predicted patient load increase over next 24 hours (number)`,
         `2) suggested staff redeployment or staff-addition plan for each ward, including recommended staffing numbers.`,
         `3) essential inventory items likely to run low and suggested reorder quantities.`,
-        `Return a JSON object: { predictedPatientIncrease: number, staffPlan: [{...}], inventoryPlan: [{...}] }`,
+        `4) a short 1-sentence summary of the operational impact (e.g., "Reduced ER wait time by 15 mins", "Prevented stockout of O- blood").`,
+        `Return a JSON object: { predictedPatientIncrease: number, staffPlan: [{...}], inventoryPlan: [{...}], impact: string }`,
         `Example Output : 
         { predictedPatientIncrease: 17,
         staffPlan: [
@@ -25,7 +26,7 @@ export async function predictLoadNode(state) {
             toWard: "to_ward", 
             staff: {doctor: [{role : "role_of_the_doctor", number : "number_of_doctors_of_given_role"}, ... ], nurse: "number of nurses"}
             notes : "reason_for_redeployment_or_addition"
-            } ,
+            } , 
              .... 
         ], inventoryPlan: [
         {itemId : "item_id" //if item doesn't exist give id as 'new_item', item: "item_name", toBeAddedQuantity: 40, reason: "reason_to_increase_inventory", currentQuantity: 150} 

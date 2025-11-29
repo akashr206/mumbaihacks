@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import {
     CircleCheck,
@@ -8,7 +9,7 @@ import {
     AlertCircle,
     CheckCircle,
     Clock,
-    Brain
+    Brain,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,72 +28,37 @@ export default function Page() {
     const [batchId, setBatchId] = useState("");
     const [finalPlan, setFinalPlan] = useState(null);
     const [selectedUpdate, setSelectedUpdate] = useState(null);
+    const router = useRouter();
 
-    // AI Decisions Data
-    const decisions = [
-        {
-            id: 1,
-            title: "Reallocated 3 nurses from Ward A to Emergency Department",
-            timestamp: "2024-01-15 14:23:00",
-            status: "SUCCESS",
-            category: "Staff Allocation",
-            reasoning:
-                "Predicted 40% increase in ER admissions based on local event patterns and historical data. Current ER staff utilization at 92%.",
-            confidence: 94,
-            impact: "Reduced ER wait time by 18 minutes, prevented bottleneck",
-        },
-        {
-            id: 2,
-            title: "Initiated emergency order for Type O- blood (15 units)",
-            timestamp: "2024-01-15 13:45:00",
-            status: "SUCCESS",
-            category: "Inventory Management",
-            reasoning:
-                "Current stock at critical level (8 units). Surgical schedule shows 4 high-risk procedures in next 12 hours. Average usage: 2.3 units/procedure.",
-            confidence: 89,
-            impact: "Prevented potential surgery delays, maintained safety margin",
-        },
-        {
-            id: 3,
-            title: "Delayed non-urgent admissions by 2 hours",
-            timestamp: "2024-01-15 12:10:00",
-            status: "PENDING",
-            category: "Patient Flow",
-            reasoning:
-                "ICU capacity at 95%. Two critical patients incoming from ER. Risk assessment indicates need for buffer capacity.",
-            confidence: 87,
-            impact: "Maintaining critical care capacity for emergencies",
-        },
-        {
-            id: 4,
-            title: "Suggested cross-training program for Ward B staff",
-            timestamp: "2024-01-15 10:15:00",
-            status: "PENDING",
-            category: "Staff Allocation",
-            reasoning:
-                "Recurring capacity mismatches detected. Ward B frequently understaffed during evening shifts while Ward C overstaffed.",
-            confidence: 78,
-            impact: "Long-term optimization - awaiting administrator approval",
-        },
-        {
-            id: 5,
-            title: "Rescheduled equipment maintenance to minimize disruption",
-            timestamp: "2024-01-15 09:30:00",
-            status: "SUCCESS",
-            category: "Operations",
-            reasoning:
-                "Predictive analysis shows low surgery volume window tomorrow 2-4 PM. Current schedule conflicts with peak usage.",
-            confidence: 92,
-            impact: "Zero disruption to patient care, equipment compliance maintained",
-        },
-    ];
-
-    const stats = {
-        successRate: 94,
-        totalDecisions: 1247,
-    };
+    const [decisions, setDecisions] = useState([]);
+    const [loadingDecisions, setLoadingDecisions] = useState(true);
 
     useEffect(() => {
+        const fetchDecisions = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/predictions`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const formatted = data.map((d) => ({
+                        id: d.id,
+                        title: "Operational Response Plan",
+                        timestamp: new Date(d.createdAt).toLocaleString(),
+                        status: "SUCCESS",
+                        category: "AI Analysis",
+                        reasoning: `Predicted patient increase: ${d.predictedPatientIncrease}. Staff redeployment plans generated.`,
+                        impact: d.impact || "No impact summary available",
+                        message: { predicted: d },
+                    }));
+                    setDecisions(formatted);
+                }
+            } catch (e) {
+                console.error("Failed to fetch decisions", e);
+            } finally {
+                setLoadingDecisions(false);
+            }
+        };
+        fetchDecisions();
+
         const handleBatchUpdate = (data) => {
             if (!data.batchId) return;
 
@@ -112,6 +78,7 @@ export default function Page() {
         const handleBatchCompleted = (data) => {
             setFinalPlan(data.finalPlan);
             console.log(data.finalPlan);
+            fetchDecisions();
 
             setUpdates((prev) => ({
                 ...prev,
@@ -193,7 +160,7 @@ export default function Page() {
     };
 
     const DecisionCard = ({ decision }) => (
-        <Card className="bg-white dark:bg-zinc-900 border-1 border-zinc-400 dark:border-zinc-800  hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-blue-900/20 transition-shadow">
+        <Card className="bg-white dark:bg-zinc-900 border border-zinc-400 dark:border-zinc-800 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-blue-900/20 transition-shadow">
             <div className="p-4 sm:p-6 space-y-4">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
@@ -221,7 +188,7 @@ export default function Page() {
                         </Badge>
                         <Badge
                             variant="outline"
-                            className="text-xs font-medium bg-blue-50 dark:bg-zinc-900 text-blue-700 dark:text-blue-200 border-1-blue-200 dark:border-1-blue-800 whitespace-nowrap"
+                            className="text-xs font-medium bg-blue-50 dark:bg-zinc-900 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-800 whitespace-nowrap"
                         >
                             {decision.category}
                         </Badge>
@@ -240,26 +207,8 @@ export default function Page() {
                         </p>
                     </div>
 
-                    {/* Confidence Bar */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <h4 className="text-xs sm:text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                                Confidence Level
-                            </h4>
-                            <span className="text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400">
-                                {decision.confidence}%
-                            </span>
-                        </div>
-                        <div className="w-full bg-zinc-200 dark:bg-zinc-700 rounded-full h-2 overflow-hidden">
-                            <div
-                                className="bg-blue-500 dark:bg-blue-500 h-full transition-all duration-500"
-                                style={{ width: `${decision.confidence}%` }}
-                            />
-                        </div>
-                    </div>
-
                     {/* Impact Section */}
-                    <div className="bg-blue-50 dark:bg-slate-950/30 rounded-lg p-3 sm:p-4 border-1 border-1-blue-100 dark:border-1-zinc-900">
+                    <div className="bg-blue-50 dark:bg-slate-950/30 rounded-lg p-3 sm:p-4 border border-blue-100 dark:border-zinc-900">
                         <h4 className="text-xs sm:text-sm font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
                             Impact
                         </h4>
@@ -269,24 +218,28 @@ export default function Page() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:gap-3">
+                    <div className="flex justify-between">
+                        <div className="flex flex-col sm:flex-row gap-2 pt-2 sm:gap-3">
+                            <Button
+                                variant="outline"
+                                className="text-xs sm:text-sm h-9 sm:h-10 bg-white dark:bg-slate-800 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-slate-700 w-full sm:w-auto"
+                            >
+                                Approve
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="text-xs sm:text-sm h-9 sm:h-10 bg-white dark:bg-slate-800 text-zinc-700 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-slate-700 w-full sm:w-auto"
+                            >
+                                Override
+                            </Button>
+                        </div>
                         <Button
-                            variant="outline"
-                            className="text-xs sm:text-sm h-9 sm:h-10 bg-white dark:bg-slate-800 text-zinc-700 dark:text-zinc-200 border-1-zinc-300 dark:border-1-zinc-600 hover:bg-zinc-50 dark:hover:bg-slate-700 w-full sm:w-auto"
+                            className={
+                                "bg-blue-500 text-white hover:bg-blue-600 cursor-pointer"
+                            }
+                            onClick={() => router.push(`/plan/${decision.id}`)}
                         >
-                            Approve
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="text-xs sm:text-sm h-9 sm:h-10 bg-white dark:bg-slate-800 text-zinc-700 dark:text-zinc-200 border-1-zinc-300 dark:border-1-zinc-600 hover:bg-zinc-50 dark:hover:bg-slate-700 w-full sm:w-auto"
-                        >
-                            Override
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            className="text-xs sm:text-sm h-9 sm:h-10 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 w-full sm:w-auto sm:ml-auto"
-                        >
-                            View Details
+                            View details
                         </Button>
                     </div>
                 </div>
@@ -301,7 +254,7 @@ export default function Page() {
     const hasStarted = updatesList.length > 0 || updates.completed;
 
     return (
-        <div className="min-h-screen bg-background space-y-4">
+        <div className="min-h-screen bg-background py-10 space-y-4">
             {/* Agentic Cycle Monitor Section */}
             <div className="max-w-4xl mx-auto w-full">
                 <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
@@ -325,25 +278,19 @@ export default function Page() {
                         {!hasStarted && (
                             <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center">
                                 <div className="mb-6 p-4 bg-blue-500/10 rounded-full">
-                                    <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 text-blue-500" />
+                                    <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 animate-spin text-blue-500" />
                                 </div>
                                 <h3 className="text-lg sm:text-xl font-medium text-foreground mb-2">
-                                    Ready to Start
+                                    Next cycle in
                                 </h3>
-                                <p className="text-muted-foreground mb-8 max-w-md text-sm sm:text-base px-4">
-                                    Initiate the multi-agent workflow to analyze
-                                    hospital data and generate an operational
-                                    plan.
-                                </p>
+                                <p className="text-muted-foreground mb-8 max-w-md text-sm sm:text-base px-4"></p>
                                 <Button
                                     onClick={startBatch}
                                     disabled={isRunning}
                                     size="lg"
                                     className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto min-w-[200px]"
                                 >
-                                    {isRunning
-                                        ? "Starting..."
-                                        : "Start Batch Analysis"}
+                                    {isRunning ? "Starting..." : "Start Now"}
                                 </Button>
                                 {error && (
                                     <div className="mt-6 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm max-w-md">
@@ -366,17 +313,17 @@ export default function Page() {
                                                 u.status === "fetching"
                                                 ? "bg-amber-50/50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800"
                                                 : u.status === "complete"
-                                                    ? "bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800"
-                                                    : u.status === "error"
-                                                        ? "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
-                                                        : "bg-card border-border",
+                                                ? "bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800"
+                                                : u.status === "error"
+                                                ? "bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800"
+                                                : "bg-card border-border",
                                             u.id === "exit" && "hidden"
                                         )}
                                     >
                                         <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                                             <div className="shrink-0 mt-1 hidden sm:block">
                                                 {u.status === "running" ||
-                                                    u.status === "fetching" ? (
+                                                u.status === "fetching" ? (
                                                     <Loader2 className="animate-spin w-5 h-5 text-amber-500" />
                                                 ) : u.status === "complete" ? (
                                                     <CircleCheck className="w-5 h-5 text-emerald-500" />
@@ -388,10 +335,13 @@ export default function Page() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex flex-wrap items-center gap-2 mb-1">
                                                     <div className="sm:hidden shrink-0">
-                                                        {u.status === "running" ||
-                                                            u.status === "fetching" ? (
+                                                        {u.status ===
+                                                            "running" ||
+                                                        u.status ===
+                                                            "fetching" ? (
                                                             <Loader2 className="animate-spin w-4 h-4 text-amber-500" />
-                                                        ) : u.status === "complete" ? (
+                                                        ) : u.status ===
+                                                          "complete" ? (
                                                             <CircleCheck className="w-4 h-4 text-emerald-500" />
                                                         ) : (
                                                             <div className="w-4 h-4 rounded-full bg-gray-200 dark:bg-zinc-800" />
@@ -406,12 +356,12 @@ export default function Page() {
                                                             u.status ===
                                                                 "running" ||
                                                                 u.status ===
-                                                                "fetching"
+                                                                    "fetching"
                                                                 ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
                                                                 : u.status ===
-                                                                    "complete"
-                                                                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                                                                    : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400"
+                                                                  "complete"
+                                                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                                                : "bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-400"
                                                         )}
                                                     >
                                                         {u.status}
@@ -419,7 +369,7 @@ export default function Page() {
                                                 </div>
 
                                                 {u.status === "running" ||
-                                                    u.status === "fetching" ? (
+                                                u.status === "fetching" ? (
                                                     <p className="text-xs sm:text-sm text-muted-foreground animate-pulse">
                                                         {u.message}
                                                     </p>
@@ -509,56 +459,39 @@ export default function Page() {
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
                             <div className="min-w-0">
                                 <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-1">
-                                    AI Decision Log
+                                    Review previous cycles
                                 </h2>
                                 <p className="text-xs sm:text-sm text-muted-foreground">
-                                    Real-time autonomous decisions and their outcomes
+                                    Real-time autonomous decisions and their
+                                    outcomes
                                 </p>
-                            </div>
-
-                            {/* Stats */}
-                            <div className="flex flex-row items-center gap-4 sm:gap-6 flex-shrink-0 overflow-x-auto pb-2 lg:pb-0">
-                                <div className="text-left sm:text-right min-w-[100px] sm:min-w-0">
-                                    <div className="flex items-center gap-1 sm:gap-2 justify-start sm:justify-end mb-1">
-                                        <TrendingUp
-                                            size={16}
-                                            className="text-green-500 dark:text-green-400 flex-shrink-0"
-                                        />
-                                        <span className="text-lg sm:text-2xl font-bold text-foreground">
-                                            {stats.successRate}%
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                        Success Rate
-                                    </p>
-                                </div>
-
-                                <div className="h-8 sm:h-10 w-px bg-border"></div>
-
-                                <div className="text-left sm:text-right min-w-[100px] sm:min-w-0">
-                                    <div className="flex items-center gap-1 sm:gap-2 justify-start sm:justify-end mb-1">
-                                        <Brain
-                                            size={16}
-                                            className="text-blue-500 dark:text-blue-400 flex-shrink-0"
-                                        />
-                                        <span className="text-lg sm:text-2xl font-bold text-foreground">
-                                            {stats.totalDecisions.toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                        Total Decisions
-                                    </p>
-                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div className="p-4 sm:p-6 lg:p-8">
-                        <div className="space-y-2 sm:space-y-3 md:space-y-4">
-                            {decisions.map((decision) => (
-                                <DecisionCard key={decision.id} decision={decision} />
-                            ))}
-                        </div>
+                        {loadingDecisions ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2" />
+                                <p className="text-sm text-muted-foreground">
+                                    Loading predictions...
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 sm:space-y-3 md:space-y-4">
+                                {decisions.map((decision) => (
+                                    <DecisionCard
+                                        key={decision.id}
+                                        decision={decision}
+                                    />
+                                ))}
+                                {decisions.length === 0 && (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        No previous cycles found.
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

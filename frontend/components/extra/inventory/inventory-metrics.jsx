@@ -6,12 +6,14 @@ import {
     Package,
     ShoppingCart,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { API_URL } from "@/lib/utils2";
 
 export default function InventoryMetrics() {
-    const metrics = [
+    const [metrics, setMetrics] = useState([
         {
             label: "Critical Items",
-            value: "2",
+            value: "-",
             icon: AlertTriangle,
             bgColor: "bg-red-50 dark:bg-red-950 ",
             textColor: "text-red-600 dark:text-red-400",
@@ -19,7 +21,7 @@ export default function InventoryMetrics() {
         },
         {
             label: "Low Stock",
-            value: "2",
+            value: "-",
             icon: TrendingDown,
             bgColor: "bg-amber-50 dark:bg-amber-950",
             textColor: "text-amber-600 dark:text-amber-400",
@@ -27,7 +29,7 @@ export default function InventoryMetrics() {
         },
         {
             label: "Total Items",
-            value: "8",
+            value: "-",
             icon: Package,
             bgColor: "bg-blue-50 dark:bg-blue-950",
             textColor: "text-blue-600 dark:text-blue-400",
@@ -35,13 +37,41 @@ export default function InventoryMetrics() {
         },
         {
             label: "Auto-Orders Active",
-            value: "7",
+            value: "-",
             icon: ShoppingCart,
             bgColor: "bg-green-50 dark:bg-green-950",
             textColor: "text-green-600 dark:text-green-400",
             borderColor: "border-green-700 dark:border-green-800 border-1",
         },
-    ];
+    ]);
+
+    useEffect(() => {
+        const fetchMetrics = async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/inventory`);
+                if (res.ok) {
+                    const data = await res.json();
+
+                    const critical = data.filter((i) => i.current === 0).length;
+                    const lowStock = data.filter(
+                        (i) => i.current <= i.minimum
+                    ).length;
+                    const total = data.length;
+                    const autoOrders = lowStock; // Assuming auto-order for low stock
+
+                    setMetrics((prev) => [
+                        { ...prev[0], value: critical },
+                        { ...prev[1], value: lowStock },
+                        { ...prev[2], value: total },
+                        { ...prev[3], value: autoOrders },
+                    ]);
+                }
+            } catch (e) {
+                console.error("Failed to fetch inventory metrics", e);
+            }
+        };
+        fetchMetrics();
+    }, []);
 
     return (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
@@ -63,7 +93,7 @@ export default function InventoryMetrics() {
                                     {metric.value}
                                 </p>
                             </div>
-                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-8 lg:h-8 flex-shrink-0" />
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-8 lg:h-8 shrink-0" />
                         </div>
                     </div>
                 );

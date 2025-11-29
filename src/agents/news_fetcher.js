@@ -12,12 +12,15 @@ const pub = redis.duplicate();
 const AGENT_ID = `news_fetcher`;
 console.log(`[${AGENT_ID}] started. Claiming tasks from tasks:stream...`);
 
-const STREAM = "tasks:stream";
+const TASK_STREAM = "tasks:stream";
 const GROUP = "task_consumers";
+
 async function ensureGroup() {
     try {
-        await redis.xgroup("CREATE", STREAM, GROUP, "$", "MKSTREAM");
-    } catch (e) {}
+        await redis.xgroup("CREATE", TASK_STREAM, GROUP, "$", "MKSTREAM");
+    } catch (e) {
+        if (!String(e).includes("BUSYGROUP")) console.error(e);
+    }
 }
 await ensureGroup();
 
@@ -31,32 +34,49 @@ async function claimAndProcess() {
         "BLOCK",
         2000,
         "STREAMS",
-        STREAM,
+        TASK_STREAM,
         ">"
     );
+
     if (!res) return;
-    const [stream, messages] = res[0];
+
+    const [, messages] = res[0];
+
     for (const [id, fields] of messages) {
-        const obj = JSON.parse(fields[1]);
+        const data = {};
+        for (let i = 0; i < fields.length; i += 2) {
+            data[fields[i]] = fields[i + 1];
+        }
+
+        const obj = JSON.parse(data.value);
         console.log(`[${AGENT_ID}] claimed task ${id}`, obj);
+
         try {
-            const STREAM = await redis.get("current-stream");
-            await addToStream(STREAM, {
+            const RESULT_STREAM = await redis.get("current-stream");
+
+            if (!RESULT_STREAM) {
+                console.warn("⚠ No active results stream yet. Skipping...");
+                continue;
+            }
+
+            await addToStream(RESULT_STREAM, {
                 id: AGENT_ID,
                 task: "fetch-news",
-                batch: STREAM,
+                batch: RESULT_STREAM,
                 agent: "News Fetcher",
                 status: "running",
-                taskStatus: "running",
                 message: "Fetching news",
             });
+
             const incidents = await fetchNearbyNews();
+
             const summaryRequest = {
                 id: uuidv4(),
                 from: AGENT_ID,
                 taskId: id,
                 incidents,
             };
+
             await pub.publish(
                 "broadcast",
                 JSON.stringify({
@@ -64,24 +84,29 @@ async function claimAndProcess() {
                     payload: summaryRequest,
                 })
             );
-            await addToStream(STREAM, {
+
+            await addToStream(RESULT_STREAM, {
                 id: AGENT_ID,
                 task: "fetch-news",
-                batch: STREAM,
+                batch: RESULT_STREAM,
                 agent: "News Fetcher",
                 status: "complete",
-                taskStatus: "complete",
                 message: "News fetched",
             });
-            await redis.xack(STREAM, GROUP, id);
+
+            await redis.xack(TASK_STREAM, GROUP, id);
         } catch (e) {
             console.error("processing error", e);
         }
     }
 }
 
-setInterval(claimAndProcess, 1000);
+(async function loop() {
+    while (true) {
+        await claimAndProcess();
+    }
+})();
 
 const sub = redis.duplicate();
 await sub.subscribe("broadcast");
-sub.on("message", (ch, message) => {});
+sub.on("message", () => {});

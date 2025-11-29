@@ -16,10 +16,7 @@ export default function InventoryList() {
         return inventoryItems.filter(
             (item) =>
                 item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.category
-                    .toLowerCase()
-                    .includes(searchTerm.toLowerCase()) ||
-                item.location.toLowerCase().includes(searchTerm.toLowerCase())
+                item.category.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [searchTerm, inventoryItems]);
 

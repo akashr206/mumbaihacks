@@ -5,13 +5,8 @@ import { eq } from "drizzle-orm";
 export const getAllInventory = async (req, res) => {
     try {
         let allInventory = await db.select().from(inventory);
-        allInventory = allInventory.map((item) => {
-            let temp = JSON.parse(JSON.stringify(item));
-            temp.statuses = JSON.parse(
-                temp.statuses.replace(/{/g, "[").replace(/}/g, "]")
-            );
-            return temp;
-        });
+        // Return data directly as the new schema doesn't have complex JSON fields that need parsing
+        // If needed, we can add derived fields here
 
         res.json(allInventory);
     } catch (error) {

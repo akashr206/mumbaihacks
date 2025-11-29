@@ -63,5 +63,6 @@ export const predictions = pgTable("predictions", {
     predictedPatientIncrease: integer("predicted_patient_increase").notNull(),
     staffPlan: jsonb("staff_plan").notNull(),
     inventoryPlan: jsonb("inventory_plan").notNull(),
+    impact: text("impact"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
