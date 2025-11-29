@@ -5,6 +5,7 @@ import {
     varchar,
     integer,
     timestamp,
+    jsonb,
 } from "drizzle-orm/pg-core";
 
 export const patients = pgTable("patients", {
@@ -55,4 +56,12 @@ export const wards = pgTable("wards", {
     doctors: integer("doctors").notNull(),
     criticality: integer("criticality").notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const predictions = pgTable("predictions", {
+    id: serial("id").primaryKey(),
+    predictedPatientIncrease: integer("predicted_patient_increase").notNull(),
+    staffPlan: jsonb("staff_plan").notNull(),
+    inventoryPlan: jsonb("inventory_plan").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });

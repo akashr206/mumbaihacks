@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { db } from "../utils/db.js";
 import { sql } from "drizzle-orm";
 import { hospital, wards, inventory, doctors } from "../../schema.js";
+import { predictions } from "../../schema.js";
 
 dotenv.config();
 import { predictLoadNode } from "../langgraph/analyze_graph.js";
@@ -47,7 +48,6 @@ sub.on("message", async (channel, message) => {
             .from(wards)
             .leftJoin(doctors, sql`${doctors.wardId} = ${wards.id}`)
             .groupBy(wards.id, doctors.role);
-        console.log("wardsWithDoctorTypeCounts : ", wardsWithDoctorTypeCounts);
 
         await addToStream(STREAM, {
             batch: STREAM,
@@ -102,7 +102,9 @@ sub.on("message", async (channel, message) => {
             raw: out.raw,
             timestamp: Date.now(),
         };
-
+        console.log(out.analysis);
+        
+        // db.insert(predictions).values(out.analysis);
         await pub.publish(
             "broadcast",
             JSON.stringify({ type: "final_plan", payload: finalPlan })
