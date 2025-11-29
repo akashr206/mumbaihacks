@@ -13,7 +13,8 @@ import {
     Settings,
     X,
     Briefcase,
-    Bot
+    Bot,
+    MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSidebarOpen } from "@/hooks/useSidebar";
@@ -31,6 +32,7 @@ const SIDEBAR_ITEMS = [
             },
             { label: "Inventory", icon: Package, href: "/inventory" },
             { label: "AI Status", icon: Bot, href: "/ai-status" },
+            { label: "Chatbot", icon: MessageSquare, href: "/chatbot" },
         ],
     },
 ];
