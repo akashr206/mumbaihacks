@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/utils2";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function ChatbotPage() {
     const [messages, setMessages] = useState([
@@ -122,9 +124,79 @@ export default function ChatbotPage() {
                                         : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100 rounded-tl-none"
                                 )}
                             >
-                                {message.content}
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        ul: ({ node, ...props }) => (
+                                            <ul
+                                                className="list-disc pl-4 mb-2"
+                                                {...props}
+                                            />
+                                        ),
+                                        ol: ({ node, ...props }) => (
+                                            <ol
+                                                className="list-decimal pl-4 mb-2"
+                                                {...props}
+                                            />
+                                        ),
+                                        li: ({ node, ...props }) => (
+                                            <li className="mb-1" {...props} />
+                                        ),
+                                        p: ({ node, ...props }) => (
+                                            <p
+                                                className="mb-2 last:mb-0"
+                                                {...props}
+                                            />
+                                        ),
+                                        strong: ({ node, ...props }) => (
+                                            <strong
+                                                className="font-bold"
+                                                {...props}
+                                            />
+                                        ),
+                                        table: ({ node, ...props }) => (
+                                            <div className="my-2 w-full overflow-y-auto rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                                <table
+                                                    className="w-full text-left text-sm"
+                                                    {...props}
+                                                />
+                                            </div>
+                                        ),
+                                        thead: ({ node, ...props }) => (
+                                            <thead
+                                                className="bg-zinc-200 dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100"
+                                                {...props}
+                                            />
+                                        ),
+                                        tbody: ({ node, ...props }) => (
+                                            <tbody
+                                                className="divide-y divide-zinc-200 dark:divide-zinc-700"
+                                                {...props}
+                                            />
+                                        ),
+                                        tr: ({ node, ...props }) => (
+                                            <tr
+                                                className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+                                                {...props}
+                                            />
+                                        ),
+                                        th: ({ node, ...props }) => (
+                                            <th
+                                                className="px-4 py-2 font-semibold"
+                                                {...props}
+                                            />
+                                        ),
+                                        td: ({ node, ...props }) => (
+                                            <td
+                                                className="px-4 py-2"
+                                                {...props}
+                                            />
+                                        ),
+                                    }}
+                                >
+                                    {message.content}
+                                </ReactMarkdown>
                             </div>
-
                             {message.role === "user" && (
                                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                                     <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
